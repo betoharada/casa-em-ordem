@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -14,28 +14,47 @@ import {
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterScreen() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
-    if (!name || !email || !password) {
-      Alert.alert("Preencha todos os campos");
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+      Alert.alert("Atenção", "Preencha todos os campos");
       return;
     }
     if (password.length < 6) {
-      Alert.alert("A senha precisa ter pelo menos 6 caracteres");
+      Alert.alert("Atenção", "A senha precisa ter pelo menos 6 caracteres");
       return;
     }
+    if (password !== confirmPassword) {
+      Alert.alert("Atenção", "As senhas não coincidem");
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
-      options: { data: { display_name: name } },
+      options: { data: { display_name: name.trim() } },
     });
     setLoading(false);
-    if (error) Alert.alert("Erro ao cadastrar", error.message);
+
+    if (error) {
+      Alert.alert("Erro ao cadastrar", error.message);
+      return;
+    }
+
+    Alert.alert(
+      "Conta criada!",
+      "Seu cadastro foi realizado com sucesso.",
+      [{ text: "Fazer login", onPress: () => router.replace("/(auth)/login") }]
+    );
   }
 
   return (
@@ -62,15 +81,44 @@ export default function RegisterScreen() {
           value={email}
           onChangeText={setEmail}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Senha (mínimo 6 caracteres)"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+        <View style={styles.passwordRow}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Senha (mínimo 6 caracteres)"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword((v) => !v)}
+          >
+            <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁️"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.passwordRow}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Confirmar senha"
+            secureTextEntry={!showConfirm}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowConfirm((v) => !v)}
+          >
+            <Text style={styles.eyeIcon}>{showConfirm ? "🙈" : "👁️"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
@@ -97,10 +145,20 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, marginBottom: 16,
   },
+  passwordRow: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12, marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16,
+  },
+  eyeButton: { paddingHorizontal: 14 },
+  eyeIcon: { fontSize: 18 },
   button: {
     backgroundColor: "#2563EB", borderRadius: 12,
     paddingVertical: 16, alignItems: "center", marginBottom: 8,
   },
+  buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
   linkButton: { marginTop: 8, alignItems: "center" },
   linkText: { color: "#2563EB" },

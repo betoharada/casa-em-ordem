@@ -16,15 +16,19 @@ import { supabase } from "@/lib/supabase";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert("Preencha e-mail e senha");
+    if (!email.trim() || !password) {
+      Alert.alert("Atenção", "Preencha e-mail e senha");
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     setLoading(false);
     if (error) Alert.alert("Erro ao entrar", error.message);
   }
@@ -47,15 +51,28 @@ export default function LoginScreen() {
           value={email}
           onChangeText={setEmail}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <View style={styles.passwordRow}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Senha"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword((v) => !v)}
+          >
+            <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁️"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
@@ -83,10 +100,20 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, marginBottom: 16,
   },
+  passwordRow: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12, marginBottom: 24,
+  },
+  passwordInput: {
+    flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16,
+  },
+  eyeButton: { paddingHorizontal: 14 },
+  eyeIcon: { fontSize: 18 },
   button: {
     backgroundColor: "#2563EB", borderRadius: 12,
     paddingVertical: 16, alignItems: "center", marginBottom: 8,
   },
+  buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
   linkButton: { marginTop: 8, alignItems: "center" },
   linkText: { color: "#2563EB" },
