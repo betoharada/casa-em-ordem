@@ -27,6 +27,9 @@
     "plugins": [
       "expo-router"
     ],
+    "experiments": {
+      "newArchEnabled": false
+    },
     "extra": {
       "router": {},
       "eas": {
