@@ -57,35 +57,25 @@ export default function SettingsScreen() {
       return;
     }
     setSaving(true);
-    const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
 
-    const { data: family, error } = await supabase
-      .from("families")
-      .insert({ name: inputValue.trim(), invite_code: inviteCode })
-      .select()
-      .single();
-
-    if (error || !family) {
-      setSaving(false);
-      Alert.alert("Erro", "Não foi possível criar a família");
-      return;
-    }
-
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      family_id: family.id,
-      display_name: data?.profile?.display_name ?? "Membro",
+    const { data: result, error } = await supabase.rpc("create_family", {
+      family_name: inputValue.trim(),
     });
 
     setSaving(false);
+
+    if (error || !result) {
+      Alert.alert("Erro ao criar família", error?.message ?? "Erro desconhecido");
+      return;
+    }
+
     setModalType(null);
     setInputValue("");
     queryClient.invalidateQueries({ queryKey: ["family-data"] });
+    queryClient.invalidateQueries({ queryKey: ["today-tasks"] });
     Alert.alert(
       "Família criada! 🎉",
-      `Compartilhe o código com sua família:\n\n${inviteCode}`,
+      `Compartilhe o código com sua família:\n\n${result.invite_code}`,
       [{ text: "OK" }]
     );
   }
