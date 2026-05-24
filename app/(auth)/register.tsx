@@ -5,6 +5,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -39,26 +40,22 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View className="flex-1 justify-center px-8">
-        <Text className="text-2xl font-bold text-center text-gray-800 mb-1">
-          Criar conta
-        </Text>
-        <Text className="text-center text-gray-500 mb-10">
-          Cadastre-se para entrar na família
-        </Text>
+      <View style={styles.inner}>
+        <Text style={styles.title}>Criar conta</Text>
+        <Text style={styles.subtitle}>Cadastre-se para entrar na família</Text>
 
         <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-base"
+          style={styles.input}
           placeholder="Seu nome"
           autoCapitalize="words"
           value={name}
           onChangeText={setName}
         />
         <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-base"
+          style={styles.input}
           placeholder="E-mail"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -66,31 +63,45 @@ export default function RegisterScreen() {
           onChangeText={setEmail}
         />
         <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-6 text-base"
+          style={styles.input}
           placeholder="Senha (mínimo 6 caracteres)"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity
-          className="bg-blue-600 rounded-xl py-4 items-center"
-          onPress={handleRegister}
-          disabled={loading}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white font-semibold text-base">Cadastrar</Text>
+            <Text style={styles.buttonText}>Cadastrar</Text>
           )}
         </TouchableOpacity>
 
         <Link href="/(auth)/login" asChild>
-          <TouchableOpacity className="mt-4 items-center">
-            <Text className="text-blue-600">Já tem conta? Entre aqui</Text>
+          <TouchableOpacity style={styles.linkButton}>
+            <Text style={styles.linkText}>Já tem conta? Entre aqui</Text>
           </TouchableOpacity>
         </Link>
       </View>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fff" },
+  inner: { flex: 1, justifyContent: "center", paddingHorizontal: 32 },
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", color: "#1F2937", marginBottom: 4 },
+  subtitle: { fontSize: 14, textAlign: "center", color: "#6B7280", marginBottom: 40 },
+  input: {
+    borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, marginBottom: 16,
+  },
+  button: {
+    backgroundColor: "#2563EB", borderRadius: 12,
+    paddingVertical: 16, alignItems: "center", marginBottom: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  linkButton: { marginTop: 8, alignItems: "center" },
+  linkText: { color: "#2563EB" },
+});

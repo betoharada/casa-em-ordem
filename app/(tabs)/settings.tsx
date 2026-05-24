@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import type { Family, Profile } from "@/types/database";
@@ -21,37 +21,47 @@ async function fetchFamilyData() {
     .select("*")
     .eq("family_id", profile.family_id);
 
-  return { profile, family: (profile as any).families as Family | null, members: members ?? [] };
+  return {
+    profile,
+    family: (profile as any).families as Family | null,
+    members: members ?? [],
+  };
 }
 
 export default function SettingsScreen() {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["family-data"],
     queryFn: fetchFamilyData,
   });
 
   async function createFamily() {
-    const name = await promptName();
-    if (!name) return;
+    Alert.prompt?.("Nova família", "Nome da sua família:", async (name) => {
+      if (!name) return;
+      const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+      const { data: family, error } = await supabase
+        .from("families")
+        .insert({ name, invite_code: inviteCode })
+        .select()
+        .single();
 
-    const { data: family, error } = await supabase
-      .from("families")
-      .insert({ name, invite_code: inviteCode })
-      .select()
-      .single();
+      if (error || !family) { Alert.alert("Erro ao criar família"); return; }
 
-    if (error || !family) { Alert.alert("Erro ao criar família"); return; }
-
-    await supabase.from("profiles").upsert({ id: user.id, family_id: family.id, display_name: data?.profile?.display_name ?? "Membro" });
-    Alert.alert("Família criada!", `Código de convite: ${inviteCode}`);
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        family_id: family.id,
+        display_name: data?.profile?.display_name ?? "Membro",
+      });
+      queryClient.invalidateQueries({ queryKey: ["family-data"] });
+      Alert.alert("Família criada!", `Código de convite: ${inviteCode}`);
+    }, "plain-text");
   }
 
   async function joinFamily() {
-    Alert.prompt?.("Entrar na família", "Digite o código de convite", async (code) => {
+    Alert.prompt?.("Entrar na família", "Digite o código de convite:", async (code) => {
       if (!code) return;
       const { data: family } = await supabase
         .from("families")
@@ -64,76 +74,110 @@ export default function SettingsScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase.from("profiles").upsert({ id: user.id, family_id: family.id, display_name: data?.profile?.display_name ?? "Membro" });
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        family_id: family.id,
+        display_name: data?.profile?.display_name ?? "Membro",
+      });
+      queryClient.invalidateQueries({ queryKey: ["family-data"] });
       Alert.alert("Você entrou na família!");
-    });
+    }, "plain-text");
   }
 
-  if (isLoading) return <SafeAreaView className="flex-1 bg-gray-50" />;
+  if (isLoading) return <SafeAreaView style={styles.container} />;
 
   const { family, members, profile } = data ?? {};
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-5 pt-6 pb-4">
-        <Text className="text-2xl font-bold text-gray-800">Família</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Família</Text>
       </View>
 
-      <View className="px-5 gap-4">
+      <View style={styles.content}>
         {family ? (
           <>
-            <View className="bg-white rounded-2xl p-4 border border-gray-100">
-              <Text className="text-xs text-gray-400 uppercase font-semibold mb-1">Família</Text>
-              <Text className="text-lg font-bold text-gray-800">{family.name}</Text>
-              <Text className="text-sm text-gray-500 mt-1">
-                Código de convite: <Text className="font-bold text-blue-600">{family.invite_code}</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>FAMÍLIA</Text>
+              <Text style={styles.familyName}>{family.name}</Text>
+              <Text style={styles.inviteText}>
+                Código de convite:{" "}
+                <Text style={styles.inviteCode}>{family.invite_code}</Text>
               </Text>
             </View>
 
-            <View className="bg-white rounded-2xl p-4 border border-gray-100">
-              <Text className="text-xs text-gray-400 uppercase font-semibold mb-3">Membros ({members?.length})</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>MEMBROS ({members?.length})</Text>
               {members?.map((m) => (
-                <View key={m.id} className="flex-row items-center gap-2 mb-2">
-                  <Text className="text-xl">👤</Text>
-                  <Text className="text-gray-800">{m.display_name}</Text>
+                <View key={m.id} style={styles.memberRow}>
+                  <Text style={styles.memberIcon}>👤</Text>
+                  <Text style={styles.memberName}>{m.display_name}</Text>
                   {m.id === profile?.id && (
-                    <Text className="text-xs text-blue-500 ml-auto">Você</Text>
+                    <Text style={styles.youLabel}>Você</Text>
                   )}
                 </View>
               ))}
             </View>
           </>
         ) : (
-          <View className="bg-white rounded-2xl p-4 border border-gray-100">
-            <Text className="text-gray-600 mb-4">Você ainda não está em uma família.</Text>
-            <TouchableOpacity
-              className="bg-blue-600 rounded-xl py-3 items-center mb-3"
-              onPress={createFamily}
-            >
-              <Text className="text-white font-semibold">Criar família</Text>
+          <View style={styles.card}>
+            <Text style={styles.noFamilyText}>
+              Você ainda não está em uma família.
+            </Text>
+            <TouchableOpacity style={styles.buttonPrimary} onPress={createFamily}>
+              <Text style={styles.buttonPrimaryText}>Criar família</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="border border-blue-600 rounded-xl py-3 items-center"
-              onPress={joinFamily}
-            >
-              <Text className="text-blue-600 font-semibold">Entrar com código</Text>
+            <TouchableOpacity style={styles.buttonSecondary} onPress={joinFamily}>
+              <Text style={styles.buttonSecondaryText}>Entrar com código</Text>
             </TouchableOpacity>
           </View>
         )}
 
         <TouchableOpacity
-          className="bg-red-50 border border-red-200 rounded-xl py-3 items-center mt-4"
+          style={styles.buttonDanger}
           onPress={() => supabase.auth.signOut()}
         >
-          <Text className="text-red-600 font-semibold">Sair da conta</Text>
+          <Text style={styles.buttonDangerText}>Sair da conta</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-function promptName(): Promise<string> {
-  return new Promise((resolve) => {
-    Alert.prompt?.("Nova família", "Nome da sua família:", (text) => resolve(text ?? ""), "plain-text");
-  });
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
+  title: { fontSize: 22, fontWeight: "bold", color: "#1F2937" },
+  content: { paddingHorizontal: 20, gap: 16 },
+  card: {
+    backgroundColor: "#fff", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#F3F4F6",
+  },
+  cardLabel: {
+    fontSize: 11, color: "#9CA3AF", fontWeight: "600",
+    letterSpacing: 0.5, marginBottom: 8,
+  },
+  familyName: { fontSize: 18, fontWeight: "bold", color: "#1F2937" },
+  inviteText: { fontSize: 13, color: "#6B7280", marginTop: 4 },
+  inviteCode: { fontWeight: "bold", color: "#2563EB" },
+  memberRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  memberIcon: { fontSize: 20, marginRight: 8 },
+  memberName: { fontSize: 15, color: "#1F2937", flex: 1 },
+  youLabel: { fontSize: 12, color: "#2563EB" },
+  noFamilyText: { color: "#6B7280", marginBottom: 16 },
+  buttonPrimary: {
+    backgroundColor: "#2563EB", borderRadius: 12,
+    paddingVertical: 12, alignItems: "center", marginBottom: 12,
+  },
+  buttonPrimaryText: { color: "#fff", fontWeight: "600" },
+  buttonSecondary: {
+    borderWidth: 1, borderColor: "#2563EB", borderRadius: 12,
+    paddingVertical: 12, alignItems: "center",
+  },
+  buttonSecondaryText: { color: "#2563EB", fontWeight: "600" },
+  buttonDanger: {
+    backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA",
+    borderRadius: 12, paddingVertical: 12, alignItems: "center", marginTop: 8,
+  },
+  buttonDangerText: { color: "#DC2626", fontWeight: "600" },
+});

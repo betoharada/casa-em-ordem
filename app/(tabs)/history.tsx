@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 
@@ -43,7 +43,9 @@ async function fetchHistory(): Promise<HistoryItem[]> {
 
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("pt-BR", {
+    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+  });
 }
 
 export default function HistoryScreen() {
@@ -53,29 +55,29 @@ export default function HistoryScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-5 pt-6 pb-4">
-        <Text className="text-2xl font-bold text-gray-800">Histórico</Text>
-        <Text className="text-gray-500 mt-1">Últimos 7 dias</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Histórico</Text>
+        <Text style={styles.subtitle}>Últimos 7 dias</Text>
       </View>
 
       {isLoading ? (
-        <ActivityIndicator className="mt-10" />
+        <ActivityIndicator style={{ marginTop: 40 }} color="#2563EB" />
       ) : items.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-400">Nenhuma atividade ainda.</Text>
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>Nenhuma atividade ainda.</Text>
         </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          contentContainerClassName="px-5 gap-2"
+          contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <View className="bg-white rounded-xl p-4 flex-row items-center gap-3 border border-gray-100">
-              <Text className="text-xl">{item.task_icon ?? "✅"}</Text>
-              <View className="flex-1">
-                <Text className="text-gray-800 font-medium">{item.task_title}</Text>
-                <Text className="text-gray-500 text-xs mt-0.5">
+            <View style={styles.card}>
+              <Text style={styles.icon}>{item.task_icon ?? "✅"}</Text>
+              <View style={styles.cardBody}>
+                <Text style={styles.taskTitle}>{item.task_title}</Text>
+                <Text style={styles.meta}>
                   {item.completed_by_name} · {formatDate(item.completed_at)}
                 </Text>
               </View>
@@ -86,3 +88,21 @@ export default function HistoryScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
+  title: { fontSize: 22, fontWeight: "bold", color: "#1F2937" },
+  subtitle: { fontSize: 14, color: "#6B7280", marginTop: 4 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptyText: { color: "#9CA3AF" },
+  list: { paddingHorizontal: 20, gap: 8 },
+  card: {
+    backgroundColor: "#fff", borderRadius: 12, padding: 16,
+    flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#F3F4F6",
+  },
+  icon: { fontSize: 22, marginRight: 12 },
+  cardBody: { flex: 1 },
+  taskTitle: { fontSize: 15, fontWeight: "500", color: "#1F2937" },
+  meta: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+});

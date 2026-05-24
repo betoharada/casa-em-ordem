@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import type { Task, TaskCompletion } from "@/types/database";
@@ -40,7 +47,6 @@ async function fetchTodayTasks(): Promise<TaskWithCompletion[]> {
 async function markTaskDone(taskId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-
   await supabase.from("task_completions").insert({
     task_id: taskId,
     completed_by: user.id,
@@ -56,30 +62,24 @@ export default function HomeScreen() {
   const done = tasks.filter((t) => t.completion !== null).length;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-5 pt-6 pb-4">
-        <Text className="text-2xl font-bold text-gray-800">Tarefas de hoje</Text>
-        <Text className="text-gray-500 mt-1">
-          {done}/{tasks.length} concluídas
-        </Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Tarefas de hoje</Text>
+        <Text style={styles.subtitle}>{done}/{tasks.length} concluídas</Text>
       </View>
 
       {isLoading ? (
-        <ActivityIndicator className="mt-10" />
+        <ActivityIndicator style={{ marginTop: 40 }} color="#2563EB" />
       ) : tasks.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-400 text-base">
-            Nenhuma tarefa cadastrada ainda.
-          </Text>
-          <Text className="text-gray-400 text-sm mt-1">
-            Adicione tarefas em Família → Configurações
-          </Text>
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>Nenhuma tarefa cadastrada ainda.</Text>
+          <Text style={styles.emptyHint}>Adicione tarefas em Família → Configurações</Text>
         </View>
       ) : (
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.id}
-          contentContainerClassName="px-5 gap-3"
+          contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={async () => {
@@ -88,26 +88,16 @@ export default function HomeScreen() {
                   refetch();
                 }
               }}
-              className={`rounded-2xl p-4 flex-row items-center gap-3 ${
-                item.completion ? "bg-green-50 border border-green-200" : "bg-white border border-gray-200"
-              }`}
+              style={[styles.card, item.completion ? styles.cardDone : styles.cardPending]}
             >
-              <Text className="text-2xl">{item.icon ?? "✅"}</Text>
-              <View className="flex-1">
-                <Text
-                  className={`text-base font-medium ${
-                    item.completion ? "text-green-700 line-through" : "text-gray-800"
-                  }`}
-                >
+              <Text style={styles.cardIcon}>{item.icon ?? "✅"}</Text>
+              <View style={styles.cardBody}>
+                <Text style={[styles.cardTitle, item.completion && styles.cardTitleDone]}>
                   {item.title}
                 </Text>
-                {item.completion && (
-                  <Text className="text-xs text-green-600 mt-0.5">Feito!</Text>
-                )}
+                {item.completion && <Text style={styles.cardDoneLabel}>Feito!</Text>}
               </View>
-              {!item.completion && (
-                <Text className="text-gray-400 text-sm">Toque para marcar</Text>
-              )}
+              {!item.completion && <Text style={styles.cardHint}>Toque para marcar</Text>}
             </TouchableOpacity>
           )}
         />
@@ -115,3 +105,26 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
+  title: { fontSize: 22, fontWeight: "bold", color: "#1F2937" },
+  subtitle: { fontSize: 14, color: "#6B7280", marginTop: 4 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptyText: { color: "#9CA3AF", fontSize: 16 },
+  emptyHint: { color: "#9CA3AF", fontSize: 13, marginTop: 4 },
+  list: { paddingHorizontal: 20, gap: 12 },
+  card: {
+    borderRadius: 16, padding: 16, flexDirection: "row",
+    alignItems: "center", borderWidth: 1,
+  },
+  cardPending: { backgroundColor: "#fff", borderColor: "#E5E7EB" },
+  cardDone: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" },
+  cardIcon: { fontSize: 24, marginRight: 12 },
+  cardBody: { flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: "500", color: "#1F2937" },
+  cardTitleDone: { color: "#15803D", textDecorationLine: "line-through" },
+  cardDoneLabel: { fontSize: 12, color: "#16A34A", marginTop: 2 },
+  cardHint: { fontSize: 12, color: "#9CA3AF" },
+});

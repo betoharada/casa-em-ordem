@@ -5,6 +5,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -30,20 +31,16 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View className="flex-1 justify-center px-8">
-        <Text className="text-4xl font-bold text-center mb-2">🏠</Text>
-        <Text className="text-2xl font-bold text-center text-gray-800 mb-1">
-          Casa em Ordem
-        </Text>
-        <Text className="text-center text-gray-500 mb-10">
-          Entre para ver as tarefas da família
-        </Text>
+      <View style={styles.inner}>
+        <Text style={styles.emoji}>🏠</Text>
+        <Text style={styles.title}>Casa em Ordem</Text>
+        <Text style={styles.subtitle}>Entre para ver as tarefas da família</Text>
 
         <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-base"
+          style={styles.input}
           placeholder="E-mail"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -51,31 +48,46 @@ export default function LoginScreen() {
           onChangeText={setEmail}
         />
         <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-6 text-base"
+          style={styles.input}
           placeholder="Senha"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity
-          className="bg-blue-600 rounded-xl py-4 items-center"
-          onPress={handleLogin}
-          disabled={loading}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white font-semibold text-base">Entrar</Text>
+            <Text style={styles.buttonText}>Entrar</Text>
           )}
         </TouchableOpacity>
 
         <Link href="/(auth)/register" asChild>
-          <TouchableOpacity className="mt-4 items-center">
-            <Text className="text-blue-600">Não tem conta? Cadastre-se</Text>
+          <TouchableOpacity style={styles.linkButton}>
+            <Text style={styles.linkText}>Não tem conta? Cadastre-se</Text>
           </TouchableOpacity>
         </Link>
       </View>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fff" },
+  inner: { flex: 1, justifyContent: "center", paddingHorizontal: 32 },
+  emoji: { fontSize: 48, textAlign: "center", marginBottom: 8 },
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", color: "#1F2937", marginBottom: 4 },
+  subtitle: { fontSize: 14, textAlign: "center", color: "#6B7280", marginBottom: 40 },
+  input: {
+    borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, marginBottom: 16,
+  },
+  button: {
+    backgroundColor: "#2563EB", borderRadius: 12,
+    paddingVertical: 16, alignItems: "center", marginBottom: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  linkButton: { marginTop: 8, alignItems: "center" },
+  linkText: { color: "#2563EB" },
+});
