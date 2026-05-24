@@ -86,32 +86,23 @@ export default function SettingsScreen() {
       return;
     }
     setSaving(true);
-    const { data: family } = await supabase
-      .from("families")
-      .select("id")
-      .eq("invite_code", inputValue.trim().toUpperCase())
-      .single();
 
-    if (!family) {
-      setSaving(false);
+    const { data: result, error } = await supabase.rpc("join_family", {
+      invite_code: inputValue.trim(),
+    });
+
+    setSaving(false);
+
+    if (error || !result || result.error) {
       Alert.alert("Código inválido", "Verifique o código e tente novamente");
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      family_id: family.id,
-      display_name: data?.profile?.display_name ?? "Membro",
-    });
-
-    setSaving(false);
     setModalType(null);
     setInputValue("");
     queryClient.invalidateQueries({ queryKey: ["family-data"] });
-    Alert.alert("Bem-vindo! 🏠", "Você entrou na família com sucesso.");
+    queryClient.invalidateQueries({ queryKey: ["today-tasks"] });
+    Alert.alert("Bem-vindo! 🏠", `Você entrou na família ${result.name} com sucesso.`);
   }
 
   function openModal(type: ModalType) {

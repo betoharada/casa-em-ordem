@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -54,7 +55,7 @@ async function markTaskDone(taskId: string) {
 }
 
 export default function HomeScreen() {
-  const { data: tasks = [], isLoading, refetch } = useQuery({
+  const { data: tasks = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ["today-tasks"],
     queryFn: fetchTodayTasks,
   });
@@ -80,6 +81,9 @@ export default function HomeScreen() {
           data={tasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={async () => {
